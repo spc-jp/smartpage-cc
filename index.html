@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIスマートページビルダー</title>
+
+  <!-- Google Fonts: Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ========================================
+       リセット・基本設定
+    ======================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:  #223670;
+      --gold:  #D0A900;
+      --navy-light: #2e4a9a;
+      --bg:    #f4f6fb;
+      --white: #ffffff;
+      --text:  #1a1a2e;
+      --gray:  #6b7280;
+      --border:#d1d5db;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(34,54,112,0.10);
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ========================================
+       ヘッダー
+    ======================================== */
+    header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    header .logo-badge {
+      background: var(--gold);
+      color: var(--navy);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    header .header-note {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ========================================
+       メインレイアウト（左右2カラム）
+    ======================================== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 0;
+      height: calc(100vh - 56px);
+    }
+
+    /* ========================================
+       左カラム：編集パネル
+    ======================================== */
+    .edit-panel {
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gold);
+      margin-bottom: 4px;
+    }
+
+    /* フォームグループ */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="tel"],
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      transition: border-color 0.2s;
+      background: #fafbff;
+    }
+
+    .form-group input[type="text"]:focus,
+    .form-group input[type="tel"]:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--navy);
+      background: var(--white);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* カラーピッカー行 */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-row input[type="color"] {
+      width: 44px;
+      height: 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 2px;
+      background: var(--white);
+    }
+
+    .color-row .color-label {
+      font-size: 13px;
+      color: var(--gray);
+    }
+
+    /* 画像アップロード */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .upload-area:hover {
+      border-color: var(--navy);
+      background: #f0f4ff;
+    }
+
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-area .upload-icon { font-size: 28px; }
+    .upload-area .upload-text { font-size: 12px; color: var(--gray); margin-top: 4px; }
+
+    .upload-preview {
+      margin-top: 10px;
+      display: none;
+    }
+
+    .upload-preview img {
+      width: 100%;
+      border-radius: 6px;
+      max-height: 140px;
+      object-fit: cover;
+    }
+
+    /* ========================================
+       右カラム：プレビューエリア
+    ======================================== */
+    .preview-panel {
+      background: #e8ecf4;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .preview-toolbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preview-toolbar span {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .btn-toggle {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--gray);
+      transition: all 0.2s;
+    }
+
+    .btn-toggle.active {
+      background: var(--navy);
+      color: var(--white);
+      border-color: var(--navy);
+    }
+
+    .preview-scroll {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* プレビュー本体 */
+    .preview-frame {
+      width: 100%;
+      max-width: 900px;
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: max-width 0.3s;
+    }
+
+    .preview-frame.sp-mode {
+      max-width: 375px;
+    }
+
+    /* ========================================
+       プレビュー内のホームページデザイン
+    ======================================== */
+
+    /* ヒーローセクション：スクショ風ライトグラデーション */
+    .hp-hero {
+      position: relative;
+      padding: 70px 40px 60px;
+      text-align: center;
+      overflow: hidden;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* 薄い水色〜白のグラデーション背景（スクショのイメージ） */
+      background: linear-gradient(160deg, #dff0fb 0%, #eaf5fd 30%, #f0f8ff 55%, #ffffff 100%);
+    }
+
+    /* 背景にアップロード画像がある場合に使う要素（画像なし時は透明） */
+    .hp-hero-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;        /* デフォルト非表示 */
+      transition: opacity 0.4s;
+    }
+
+    /* 画像がセットされたら表示 */
+    .hp-hero-bg.has-image {
+      opacity: 0.18;     /* 薄く重ねて雰囲気を残す */
+    }
+
+    /* ライトグラデーション時のオーバーレイ（装飾用の薄い円） */
+    .hp-hero-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    /* 背景に浮かぶ薄い光の丸（スクショの雰囲気を出す装飾） */
+    .hp-hero-overlay::before {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.18) 0%, transparent 70%);
+      top: -120px;
+      right: -80px;
+    }
+
+    .hp-hero-overlay::after {
+      content: '';
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,210,255,0.13) 0%, transparent 70%);
+      bottom: -60px;
+      left: -40px;
+    }
+
+    /* 小さなバッジ（スクショの「Introducing…」相当） */
+    .hp-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(56,189,248,0.35);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0ea5e9;
+      letter-spacing: 0.06em;
+      margin-bottom: 18px;
+      backdrop-filter: blur(4px);
+    }
+
+    .hp-hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+    }
+
+    .hp-company-name {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #64748b;   /* ライト系なのでダークグレー */
+      margin-bottom: 10px;
+    }
+
+    .hp-catch {
+      font-size: 28px;
+      font-weight: 700;
+      /* メインカラーに近い濃いブルー系デフォルト、JSで上書き */
+      color: #1e3a5f;
+      line-height: 1.45;
+      margin-bottom: 22px;
+      letter-spacing: -0.01em;
+    }
+
+    /* サブコピー（スクショの小さい説明文） */
+    .hp-hero-sub {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.7;
+      margin-bottom: 26px;
+    }
+
+    .hp-cta-btn {
+      display: inline-block;
+      padding: 13px 36px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 4px 18px rgba(56,189,248,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .hp-cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(56,189,248,0.45);
+    }
+
+    /* 事業内容セクション */
+    .hp-section {
+      padding: 40px 32px;
+    }
+
+    .hp-section-title {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+
+    .hp-section-title::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 3px;
+      margin: 8px auto 0;
+      border-radius: 2px;
+    }
+
+    .hp-business-text {
+      font-size: 14px;
+      line-height: 1.9;
+      color: #444;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+
+    /* お悩み解決セクション */
+    .hp-trouble {
+      padding: 36px 32px;
+    }
+
+    .hp-trouble-box {
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .hp-trouble-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .hp-trouble-text {
+      font-size: 14px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+    }
+
+    /* お問い合わせセクション */
+    .hp-contact {
+      padding: 36px 32px;
+      text-align: center;
+    }
+
+    .hp-contact-label {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .hp-phone {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .hp-phone-note {
+      font-size: 11px;
+      color: var(--gray);
+      margin-top: 4px;
+    }
+
+    /* フッター */
+    .hp-footer {
+      padding: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ========================================
+       AIアドバイスエリア（画面下部）
+    ======================================== */
+    .ai-area {
+      background: var(--white);
+      border-top: 2px solid var(--navy);
+      padding: 20px 28px;
+    }
+
+    .ai-area-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .ai-area-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .ai-area-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .ai-area-header .ai-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-ai {
+      background: linear-gradient(135deg, var(--navy), var(--navy-light));
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 11px 28px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-left: auto;
+    }
+
+    .btn-ai:hover { opacity: 0.88; }
+    .btn-ai:active { transform: scale(0.97); }
+    .btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* AIレスポンス表示エリア */
+    .ai-response {
+      background: #f8f9ff;
+      border: 1.5px solid #c7d0f0;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text);
+      min-height: 80px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .ai-response.visible { display: block; }
+
+    .ai-response .ai-loading {
+      color: var(--gray);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ローディングスピナー */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ========================================
+       レスポンシブ対応
+    ======================================== */
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .edit-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .preview-panel {
+        height: 80vh;
+      }
+
+      header .header-note { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .ai-area { padding: 14px 14px; }
+      .hp-hero { padding: 40px 16px; }
+      .hp-section { padding: 24px 16px; }
+      .hp-trouble { padding: 24px 16px; }
+      .hp-contact { padding: 24px 16px; }
+      .hp-catch { font-size: 20px; }
+    }
+
+    /* ========================================
+       セーブインジケーター
+    ======================================== */
+    .save-indicator {
+      font-size: 11px;
+      color: #22c55e;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    /* ========================================
+       ヘッダー右側ボタンエリア
+    ======================================== */
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 使い方・設定共通ボタン */
+    .hdr-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.18s;
+      white-space: nowrap;
+    }
+    .hdr-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* ========================================
+       ポップオーバー共通（使い方・設定）
+    ======================================== */
+    .popover-wrap {
+      position: relative;
+    }
+
+    .popover {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(34,54,112,0.16);
+      z-index: 200;
+      animation: popIn 0.15s ease;
+    }
+    .popover.open { display: block; }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- 使い方ポップオーバー ---- */
+    .how-popover {
+      width: 320px;
+      padding: 20px;
+    }
+
+    .how-popover h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .how-popover .purpose {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .how-popover h4 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .how-popover ol {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .how-popover ol li {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .how-popover ol li strong {
+      color: var(--navy);
+    }
+
+    /* ---- 設定ポップオーバー ---- */
+    .cfg-popover {
+      width: 220px;
+      padding: 8px 0;
+    }
+
+    .cfg-popover .cfg-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.08em;
+      padding: 8px 16px 4px;
+    }
+
+    .cfg-popover .cfg-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      font-size: 13px;
+      color: #1e293b;
+      cursor: pointer;
+      transition: background 0.12s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .cfg-popover .cfg-item:hover { background: #f1f5f9; }
+
+    .cfg-popover .cfg-item .cfg-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .cfg-popover .cfg-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 6px 0;
+    }
+
+    .cfg-popover .cfg-item.danger { color: #ef4444; }
+    .cfg-popover .cfg-item.danger:hover { background: #fff1f1; }
+    .save-indicator.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ========================================
+     ヘッダー
+======================================== -->
+<header>
+  <span class="logo-badge">AI</span>
+  <h1>スマートページビルダー</h1>
+
+  <div class="header-actions">
+    <span class="save-indicator" id="saveIndicator">✔ 保存済み</span>
+
+    <!-- 使い方ボタン -->
+    <div class="popover-wrap">
+      <button class="hdr-btn" onclick="togglePopover('howPopover')">
+        📖 使い方
+      </button>
+      <div class="popover how-popover" id="howPopover">
+        <h3>🎯 このアプリの目的</h3>
+        <p class="purpose">
+          中小企業の経営者が、専門知識なしで自分のホームページを作成・更新できるツールです。
+          AIが現状を分析し「次にやるべきこと」を具体的にアドバイスするので、
+          ホームページを育て続けることができます。
+        </p>
+        <h4>📋 使い方</h4>
+        <ol>
+          <li><strong>左パネルに入力</strong>する：会社名・キャッチコピー・事業内容など必要事項を入力してください</li>
+          <li><strong>右側でリアルタイム確認</strong>：入力と同時にホームページの仕上がりが右側に表示されます</li>
+          <li><strong>カラーを選ぶ</strong>：メインカラーを変えるだけで全体の印象がすぐ変わります</li>
+          <li><strong>画像をアップロード</strong>：会社や商品の写真をドラッグ＆ドロップで追加できます</li>
+          <li><strong>スマホ表示を確認</strong>：右上の「スマホ表示」ボタンでスマホでの見た目を確認できます</li>
+          <li><strong>AIにアドバイスをもらう</strong>：下部のボタンを押すと、AIが改善提案を自動生成します</li>
+          <li><strong>自動保存</strong>：入力内容はブラウザに自動保存されるので、次回開いても続きから始められます</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 設定ボタン -->
+    <div class="popover-wrap">
+      <button class="hdr-btn" onclick="togglePopover('cfgPopover')">
+        ⚙️ 設定
+      </button>
+      <div class="popover cfg-popover" id="cfgPopover">
+        <div class="cfg-section-label">カラーテーマ</div>
+        <button class="cfg-item" onclick="applyTheme('male')">
+          <span class="cfg-dot" style="background:#223670;"></span>
+          男性向け（デフォルト）
+        </button>
+        <button class="cfg-item" onclick="applyTheme('female')">
+          <span class="cfg-dot" style="background:#d4547a;"></span>
+          女性向け（ピンク系）
+        </button>
+        <div class="cfg-divider"></div>
+        <div class="cfg-section-label">デモデータ</div>
+        <button class="cfg-item" onclick="loadDemoData()">
+          ✨ デモデータを読み込む
+        </button>
+        <button class="cfg-item danger" onclick="clearDemoData()">
+          🗑 デモデータをクリア
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ========================================
+     メインエリア（左右2カラム）
+======================================== -->
+<div class="main-grid">
+
+  <!-- 左カラム：編集パネル -->
+  <aside class="edit-panel">
+    <div class="panel-title">ページ情報を入力</div>
+
+    <div class="form-group">
+      <label for="companyName">🏢 会社名</label>
+      <input type="text" id="companyName" placeholder="例：株式会社〇〇" />
+    </div>
+
+    <div class="form-group">
+      <label for="catchCopy">✨ キャッチコピー</label>
+      <input type="text" id="catchCopy" placeholder="例：地域No.1のサービスで、あなたの課題を解決します" />
+    </div>
+
+    <div class="form-group">
+      <label for="business">📋 事業内容</label>
+      <textarea id="business" placeholder="例：私たちは〇〇業を中心に、地域のお客様の〜をサポートしています。創業20年の実績と信頼で…"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="trouble">💬 お悩み解決メッセージ</label>
+      <textarea id="trouble" placeholder="例：「コストを下げたい」「品質に自信が持てない」そんなお悩み、ぜひご相談ください。"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="phone">📞 電話番号</label>
+      <input type="tel" id="phone" placeholder="例：0120-000-000" />
+    </div>
+
+    <div class="form-group">
+      <label>🎨 メインカラー</label>
+      <div class="color-row">
+        <input type="color" id="mainColor" value="#223670" />
+        <span class="color-label" id="colorHex">#223670</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>🖼 メイン画像</label>
+      <div class="upload-area">
+        <input type="file" id="imageUpload" accept="image/*" />
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">クリックまたはドラッグで画像をアップロード<br>（自動で1280px・JPEG圧縮）</div>
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <img id="previewThumb" src="" alt="アップロード画像" />
+      </div>
+    </div>
+  </aside>
+
+  <!-- 右カラム：プレビュー -->
+  <section class="preview-panel">
+    <div class="preview-toolbar">
+      <span>プレビュー</span>
+      <button class="btn-toggle active" id="btnPC" onclick="setViewMode('pc')">💻 PC表示</button>
+      <button class="btn-toggle" id="btnSP" onclick="setViewMode('sp')">📱 スマホ表示（375px）</button>
+    </div>
+    <div class="preview-scroll">
+      <!-- ホームページプレビュー本体 -->
+      <div class="preview-frame" id="previewFrame">
+
+        <!-- ヒーローセクション -->
+        <div class="hp-hero" id="hpHero">
+          <!-- アップロード画像（薄く重ねる） -->
+          <div class="hp-hero-bg" id="hpHeroBg"></div>
+          <!-- 装飾オーバーレイ（光の丸はCSSのbefore/afterで描画） -->
+          <div class="hp-hero-overlay" id="hpHeroOverlay"></div>
+          <div class="hp-hero-content">
+            <!-- 小さなバッジ（スクショの「Introducing…」風） -->
+            <div class="hp-hero-badge" id="hpHeroBadge">✦ <span id="hpCompanyName">会社名</span></div>
+            <!-- メインキャッチコピー -->
+            <div class="hp-catch" id="hpCatch">キャッチコピーがここに表示されます</div>
+            <!-- サブコピー（事業内容の冒頭を短く表示） -->
+            <div class="hp-hero-sub" id="hpHeroSub">事業内容を入力すると、ここにサブコピーが表示されます。</div>
+            <button class="hp-cta-btn" id="hpCtaBtn">お問い合わせ・ご相談はこちら</button>
+          </div>
+        </div>
+
+        <!-- 事業内容セクション -->
+        <div class="hp-section" id="hpBusinessSection">
+          <div class="hp-section-title" id="hpSectionTitle1">私たちの事業について</div>
+          <div class="hp-business-text" id="hpBusiness">事業内容を入力すると、ここに表示されます。</div>
+        </div>
+
+        <!-- お悩み解決セクション -->
+        <div class="hp-trouble" id="hpTroubleSection">
+          <div class="hp-trouble-box" id="hpTroubleBox">
+            <div class="hp-trouble-title" id="hpTroubleTitle">💡 こんなお悩みはありませんか？</div>
+            <div class="hp-trouble-text" id="hpTrouble">お悩み解決メッセージを入力すると、ここに表示されます。</div>
+          </div>
+        </div>
+
+        <!-- お問い合わせセクション -->
+        <div class="hp-contact" id="hpContact">
+          <div class="hp-contact-label" id="hpContactLabel">まずはお気軽にご相談ください</div>
+          <div class="hp-phone" id="hpPhone">電話番号を入力してください</div>
+          <div class="hp-phone-note">受付時間 平日 9:00〜18:00</div>
+        </div>
+
+        <!-- フッター -->
+        <div class="hp-footer" id="hpFooter">
+          <span id="hpFooterName">会社名</span> &copy; 2024 All Rights Reserved.
+        </div>
+
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ========================================
+     AIアドバイスエリア（画面下部）
+======================================== -->
+<div class="ai-area">
+  <div class="ai-area-inner">
+    <div class="ai-area-header">
+      <h2>🤖 AIアドバイス</h2>
+      <span class="ai-badge">Powered by Claude</span>
+      <button class="btn-ai" id="btnAI" onclick="getAiAdvice()">
+        ✨ AIにアドバイスをもらう
+      </button>
+    </div>
+    <div class="ai-response" id="aiResponse"></div>
+  </div>
+</div>
+
+<!-- Canvas（画像圧縮用、非表示） -->
+<canvas id="compressCanvas" style="display:none;"></canvas>
+
+<script>
+// ========================================
+// 定数・設定
+// ========================================
+
+// CloudFlare Workers エンドポイント（後から差し替え可能）
+const WORKER_URL = "https://your-worker.workers.dev/ai-advice";
+
+// localStorageのキー
+const STORAGE_KEY = "smartpage_data";
+
+// ========================================
+// 状態管理
+// ========================================
+let currentImageDataUrl = null; // アップロード済み画像のDataURL
+
+// ========================================
+// 入力フォームの参照
+// ========================================
+const fields = {
+  companyName: document.getElementById("companyName"),
+  catchCopy:   document.getElementById("catchCopy"),
+  business:    document.getElementById("business"),
+  trouble:     document.getElementById("trouble"),
+  phone:       document.getElementById("phone"),
+  mainColor:   document.getElementById("mainColor"),
+};
+
+// ========================================
+// プレビュー要素の参照
+// ========================================
+const preview = {
+  companyName:   document.getElementById("hpCompanyName"),
+  heroBadge:     document.getElementById("hpHeroBadge"),
+  catch:         document.getElementById("hpCatch"),
+  heroSub:       document.getElementById("hpHeroSub"),
+  business:      document.getElementById("hpBusiness"),
+  trouble:       document.getElementById("hpTrouble"),
+  phone:         document.getElementById("hpPhone"),
+  footerName:    document.getElementById("hpFooterName"),
+  heroBg:        document.getElementById("hpHeroBg"),
+  ctaBtn:        document.getElementById("hpCtaBtn"),
+  sectionTitle1: document.getElementById("hpSectionTitle1"),
+  troubleBox:    document.getElementById("hpTroubleBox"),
+  troubleTitle:  document.getElementById("hpTroubleTitle"),
+  contactSection:document.getElementById("hpContact"),
+  contactLabel:  document.getElementById("hpContactLabel"),
+  footer:        document.getElementById("hpFooter"),
+};
+
+// ========================================
+// リアルタイムプレビュー更新
+// ========================================
+function updatePreview() {
+  const name   = fields.companyName.value || "会社名";
+  const catch_ = fields.catchCopy.value   || "キャッチコピーがここに表示されます";
+  const biz    = fields.business.value    || "事業内容を入力すると、ここに表示されます。";
+  const trbl   = fields.trouble.value     || "お悩み解決メッセージを入力すると、ここに表示されます。";
+  const phone  = fields.phone.value       || "電話番号を入力してください";
+  const color  = fields.mainColor.value;
+
+  // テキスト反映
+  preview.companyName.textContent = name;
+  preview.catch.textContent       = catch_;
+  preview.business.textContent    = biz;
+  preview.trouble.textContent     = trbl;
+  preview.phone.textContent       = phone;
+  preview.footerName.textContent  = name;
+
+  // ヒーローサブコピー（事業内容の先頭60文字を短縮表示）
+  const subText = biz.length > 60 ? biz.slice(0, 60) + "…" : biz;
+  preview.heroSub.textContent = subText;
+
+  // カラーピッカーのhex表示
+  document.getElementById("colorHex").textContent = color;
+
+  // --- ヒーローエリア ---
+  // ライトグラデーション背景はCSSで設定済み。
+  // メインカラーをヒーローの光の装飾色として薄く反映（CSS変数経由）
+  document.documentElement.style.setProperty("--hero-accent", color + "30");
+
+  // キャッチコピーの文字色：メインカラーを暗くして使う
+  preview.catch.style.color = darkenColor(color, 0.3);
+
+  // バッジのテキスト色をメインカラーに合わせる
+  preview.heroBadge.style.color       = color;
+  preview.heroBadge.style.borderColor = color + "55";
+  preview.heroBadge.style.background  = color + "12";
+
+  // CTAボタン：メインカラーをそのまま使用（ライト背景に映える）
+  preview.ctaBtn.style.background = color;
+  preview.ctaBtn.style.color      = "#ffffff";
+  preview.ctaBtn.style.boxShadow  = `0 4px 18px ${color}50`;
+
+  // --- 事業内容セクション ---
+  preview.sectionTitle1.style.color = color;
+
+  // --- お悩みボックス ---
+  preview.troubleBox.style.background = color + "10";
+  preview.troubleBox.style.border     = `2px solid ${color}30`;
+  preview.troubleTitle.style.color    = color;
+
+  // --- お問い合わせセクション ---
+  preview.contactSection.style.background = color + "08";
+  preview.contactSection.style.borderTop  = `3px solid ${color}`;
+  preview.contactLabel.style.color        = color;
+  preview.phone.style.color               = color;
+
+  // --- フッター ---
+  preview.footer.style.background = color;
+
+  // 自動保存
+  saveToStorage();
+}
+
+// 16進カラーを指定した割合で暗くするユーティリティ
+function darkenColor(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, ((n >> 16) & 0xff) * (1 - amount)) | 0;
+  const g = Math.max(0, ((n >>  8) & 0xff) * (1 - amount)) | 0;
+  const b = Math.max(0, ( n        & 0xff) * (1 - amount)) | 0;
+  return `rgb(${r},${g},${b})`;
+}
+
+// ========================================
+// PC / スマホ 表示切替
+// ========================================
+function setViewMode(mode) {
+  const frame = document.getElementById("previewFrame");
+  const btnPC = document.getElementById("btnPC");
+  const btnSP = document.getElementById("btnSP");
+
+  if (mode === "sp") {
+    frame.classList.add("sp-mode");
+    btnSP.classList.add("active");
+    btnPC.classList.remove("active");
+  } else {
+    frame.classList.remove("sp-mode");
+    btnPC.classList.add("active");
+    btnSP.classList.remove("active");
+  }
+}
+
+// ========================================
+// 画像アップロード & Canvas圧縮（1280px JPEG）
+// ========================================
+document.getElementById("imageUpload").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas  = document.getElementById("compressCanvas");
+      const MAX_W   = 1280;
+      let w = img.width;
+      let h = img.height;
+
+      // 長辺を1280pxに収める
+      if (w > MAX_W) {
+        h = Math.round(h * MAX_W / w);
+        w = MAX_W;
+      }
+
+      canvas.width  = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // JPEG品質0.85で圧縮
+      const compressed = canvas.toDataURL("image/jpeg", 0.85);
+      currentImageDataUrl = compressed;
+
+      // プレビューに反映（薄く重ねるだけでライトグラデーション背景は維持）
+      preview.heroBg.style.backgroundImage = `url(${compressed})`;
+      preview.heroBg.classList.add("has-image");
+
+      // サムネイル表示
+      document.getElementById("previewThumb").src = compressed;
+      document.getElementById("uploadPreview").style.display = "block";
+
+      // 保存
+      saveToStorage();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// ========================================
+// localStorageへ保存
+// ========================================
+let saveTimer = null;
+function saveToStorage() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const data = {
+      companyName: fields.companyName.value,
+      catchCopy:   fields.catchCopy.value,
+      business:    fields.business.value,
+      trouble:     fields.trouble.value,
+      phone:       fields.phone.value,
+      mainColor:   fields.mainColor.value,
+      image:       currentImageDataUrl,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      // 保存インジケーター表示
+      const ind = document.getElementById("saveIndicator");
+      ind.classList.add("show");
+      setTimeout(() => ind.classList.remove("show"), 2000);
+    } catch (err) {
+      // ストレージ容量超過（画像が大きい場合）は画像なしで保存
+      const dataNoImg = { ...data, image: null };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataNoImg));
+    }
+  }, 600);
+}
+
+// ========================================
+// localStorageから復元
+// ========================================
+function loadFromStorage() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+
+  let data;
+  try { data = JSON.parse(raw); }
+  catch { return; }
+
+  if (data.companyName !== undefined) fields.companyName.value = data.companyName;
+  if (data.catchCopy   !== undefined) fields.catchCopy.value   = data.catchCopy;
+  if (data.business    !== undefined) fields.business.value    = data.business;
+  if (data.trouble     !== undefined) fields.trouble.value     = data.trouble;
+  if (data.phone       !== undefined) fields.phone.value       = data.phone;
+  if (data.mainColor   !== undefined) fields.mainColor.value   = data.mainColor;
+
+  if (data.image) {
+    currentImageDataUrl = data.image;
+    preview.heroBg.style.backgroundImage = `url(${data.image})`;
+    document.getElementById("previewThumb").src = data.image;
+    document.getElementById("uploadPreview").style.display = "block";
+  }
+
+  // プレビューを更新
+  updatePreview();
+}
+
+// ========================================
+// AIアドバイス取得
+// ========================================
+async function getAiAdvice() {
+  const btn      = document.getElementById("btnAI");
+  const respArea = document.getElementById("aiResponse");
+
+  // 入力内容をまとめる
+  const siteData = {
+    companyName: fields.companyName.value || "（未入力）",
+    catchCopy:   fields.catchCopy.value   || "（未入力）",
+    business:    fields.business.value    || "（未入力）",
+    trouble:     fields.trouble.value     || "（未入力）",
+    phone:       fields.phone.value       || "（未入力）",
+  };
+
+  // ローディング表示
+  btn.disabled = true;
+  btn.textContent = "⏳ アドバイスを生成中...";
+  respArea.classList.add("visible");
+  respArea.innerHTML = '<div class="ai-loading"><div class="spinner"></div>AIが分析しています。少々お待ちください…</div>';
+
+  try {
+    // --- ここでWorkerへのAPIリクエストを行う ---
+    // Workerが未接続のため、現在はモック応答を返す
+    // 実装後は下記のfetch処理のコメントを外してください
+
+    /*
+    const response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(siteData),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    respArea.textContent = result.advice;
+    */
+
+    // --- モック応答（Workerに接続するまでの仮表示） ---
+    await new Promise(r => setTimeout(r, 1500)); // 疑似待機
+    const mockAdvice = generateMockAdvice(siteData);
+    respArea.textContent = mockAdvice;
+
+  } catch (err) {
+    respArea.textContent = `⚠️ アドバイスの取得に失敗しました。\nエラー: ${err.message}\n\nWorkerのURLが正しく設定されているか確認してください。`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "✨ AIにアドバイスをもらう";
+  }
+}
+
+// ========================================
+// モック応答生成（Workerが接続されるまでのダミー）
+// ========================================
+function generateMockAdvice(data) {
+  const name = data.companyName !== "（未入力）" ? data.companyName : "御社";
+  const hasCatch = data.catchCopy !== "（未入力）";
+  const hasBiz   = data.business  !== "（未入力）";
+
+  return `【 ${name} のホームページ診断レポート 】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 現在のページの強み
+${hasCatch ? `・キャッチコピーが設定されており、訪問者への第一印象が作れています。` : "・（キャッチコピーを入力するとここに分析が入ります）"}
+${hasBiz   ? `・事業内容が記載されており、何をしている会社かが伝わります。` : "・（事業内容を入力するとここに分析が入ります）"}
+・電話番号が目立つ位置に配置されており、問い合わせへの導線が明確です。
+
+⚠️ 現在のページの弱み
+・お客様の声（口コミ・実績）がまだありません。信頼性向上のために追加を検討してください。
+・料金・費用の目安が不明なため、見込み客が次の行動をとりにくい可能性があります。
+・FAQセクションがなく、よくある疑問を解消できていません。
+
+📌 次に追加すべきコンテンツ TOP3
+1. 【お客様の声・実績紹介】
+   → 顔写真付きの testimonial は成約率を大きく向上させます。3件から始めましょう。
+
+2. 【よくある質問（FAQ）】
+   → 問い合わせ前の不安を先回りして解消することで、CVRが改善されます。
+
+3. 【サービスの流れ・ステップ説明】
+   → 「どうやって依頼すればいいか」を図解することで、初めての方の不安が軽減されます。
+
+🔍 SEO改善のポイント
+・ページタイトルに地域名＋業種キーワードを含めましょう（例：「〇〇市 外壁塗装 〇〇社」）。
+・h1〜h3の見出し構造を整えると、Googleがページ内容を正しく理解しやすくなります。
+・画像にalt属性を設定することで、画像検索からの流入が期待できます。
+・「〇〇とは」「〇〇の選び方」などのコラム記事を追加すると、ロングテールSEOに効果的です。
+
+📈 問い合わせを増やすための改善提案
+・CTA（問い合わせボタン）をページの複数箇所に設置しましょう（ヘッダー・ページ中部・フッター）。
+・「無料相談」「今すぐ見積もり」などアクションを明確にした文言にするとクリック率が上がります。
+・営業時間・定休日・対応エリアを明記すると、ミスマッチによる問い合わせロスを減らせます。
+・LINEや問い合わせフォームなど、電話以外の接触手段も用意すると顧客層が広がります。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+※ このアドバイスは現在モック応答です。Cloudflare WorkerとClaude APIを接続すると、入力内容に応じたリアルなアドバイスが生成されます。`;
+}
+
+// ========================================
+// イベントリスナー登録（リアルタイム更新）
+// ========================================
+Object.values(fields).forEach(el => {
+  el.addEventListener("input", updatePreview);
+  el.addEventListener("change", updatePreview);
+});
+
+// ========================================
+// ポップオーバー開閉
+// ========================================
+function togglePopover(id) {
+  const target = document.getElementById(id);
+  const isOpen = target.classList.contains("open");
+  // いったん全部閉じてから対象だけ開く
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+  if (!isOpen) target.classList.add("open");
+}
+
+// ポップオーバー外クリックで閉じる
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".popover-wrap")) {
+    document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+  }
+});
+
+// ========================================
+// カラーテーマ切替
+// ========================================
+const THEMES = {
+  male: {
+    mainColor: "#223670",
+    heroBg: "linear-gradient(160deg, #dff0fb 0%, #eaf5fd 30%, #f0f8ff 55%, #ffffff 100%)",
+  },
+  female: {
+    mainColor: "#c2185b",
+    heroBg: "linear-gradient(160deg, #fce4ec 0%, #fdf0f5 30%, #fff5f8 55%, #ffffff 100%)",
+  },
+};
+
+function applyTheme(gender) {
+  const theme = THEMES[gender];
+
+  // カラーピッカーを更新
+  fields.mainColor.value = theme.mainColor;
+
+  // ヒーローグラデーション背景を切替
+  document.getElementById("hpHero").style.background = theme.heroBg;
+
+  // プレビューを再描画
+  updatePreview();
+
+  // ポップオーバーを閉じる
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+}
+
+// ========================================
+// デモデータ
+// ========================================
+const DEMO_DATA = {
+  companyName: "株式会社やまもと塗装",
+  catchCopy: "外壁塗装は地元密着20年。丁寧な仕事で笑顔をお届けします",
+  business: "神奈川県を中心に外壁塗装・屋根塗装・防水工事を承っております。\n創業20年の実績と地元ならではのきめ細かいサービスで、\nお客様の大切なお家を長く守るお手伝いをしています。\n施工実績は累計1,200件以上。アフターフォローも万全です。",
+  trouble: "「見積もりが高すぎる」「どの業者に頼めばいいかわからない」\nそんなお悩みをお持ちではありませんか？\n\n私たちは地元密着だからこそ、適正価格・素早い対応が可能です。\nまずはお気軽にご相談ください。無料見積もり実施中！",
+  phone: "0120-123-456",
+  mainColor: "#223670",
+};
+
+function loadDemoData() {
+  fields.companyName.value = DEMO_DATA.companyName;
+  fields.catchCopy.value   = DEMO_DATA.catchCopy;
+  fields.business.value    = DEMO_DATA.business;
+  fields.trouble.value     = DEMO_DATA.trouble;
+  fields.phone.value       = DEMO_DATA.phone;
+  fields.mainColor.value   = DEMO_DATA.mainColor;
+
+  // ヒーロー背景をデフォルトに戻す
+  document.getElementById("hpHero").style.background = "";
+
+  updatePreview();
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+}
+
+function clearDemoData() {
+  if (!confirm("入力内容をすべてクリアしますか？")) return;
+
+  fields.companyName.value = "";
+  fields.catchCopy.value   = "";
+  fields.business.value    = "";
+  fields.trouble.value     = "";
+  fields.phone.value       = "";
+  fields.mainColor.value   = "#223670";
+  currentImageDataUrl      = null;
+
+  // 画像プレビューもリセット
+  preview.heroBg.style.backgroundImage = "";
+  preview.heroBg.classList.remove("has-image");
+  document.getElementById("previewThumb").src = "";
+  document.getElementById("uploadPreview").style.display = "none";
+
+  // ヒーロー背景をデフォルトに戻す
+  document.getElementById("hpHero").style.background = "";
+
+  localStorage.removeItem(STORAGE_KEY);
+  updatePreview();
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+}
+
+// ========================================
+// 初期化
+// ========================================
+document.addEventListener("DOMContentLoaded", () => {
+  loadFromStorage(); // 保存データを復元
+  updatePreview();   // 初期プレビューを描画
+});
+</script>
+</body>
+</html>
