@@ -683,14 +683,12 @@
 
     .popover {
       display: none;
-      position: absolute;
-      top: calc(100% + 10px);
-      right: 0;
+      position: fixed;   /* bodyの stacking context に属させる */
       background: #fff;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(34,54,112,0.16);
-      z-index: 200;
+      z-index: 9999;     /* 最前面 */
       animation: popIn 0.15s ease;
     }
     .popover.open { display: block; }
@@ -810,59 +808,51 @@
 
   <div class="header-actions">
     <span class="save-indicator" id="saveIndicator">✔ 保存済み</span>
-
-    <!-- 使い方ボタン -->
-    <div class="popover-wrap">
-      <button class="hdr-btn" onclick="togglePopover('howPopover', event)">
-        📖 使い方
-      </button>
-      <div class="popover how-popover" id="howPopover">
-        <h3>🎯 このアプリの目的</h3>
-        <p class="purpose">
-          中小企業の経営者が、専門知識なしで自分のホームページを作成・更新できるツールです。
-          AIが現状を分析し「次にやるべきこと」を具体的にアドバイスするので、
-          ホームページを育て続けることができます。
-        </p>
-        <h4>📋 使い方</h4>
-        <ol>
-          <li><strong>左パネルに入力</strong>する：会社名・キャッチコピー・事業内容など必要事項を入力してください</li>
-          <li><strong>右側でリアルタイム確認</strong>：入力と同時にホームページの仕上がりが右側に表示されます</li>
-          <li><strong>カラーを選ぶ</strong>：メインカラーを変えるだけで全体の印象がすぐ変わります</li>
-          <li><strong>画像をアップロード</strong>：会社や商品の写真をドラッグ＆ドロップで追加できます</li>
-          <li><strong>スマホ表示を確認</strong>：右上の「スマホ表示」ボタンでスマホでの見た目を確認できます</li>
-          <li><strong>AIにアドバイスをもらう</strong>：下部のボタンを押すと、AIが改善提案を自動生成します</li>
-          <li><strong>自動保存</strong>：入力内容はブラウザに自動保存されるので、次回開いても続きから始められます</li>
-        </ol>
-      </div>
-    </div>
-
-    <!-- 設定ボタン -->
-    <div class="popover-wrap">
-      <button class="hdr-btn" onclick="togglePopover('cfgPopover', event)">
-        ⚙️ 設定
-      </button>
-      <div class="popover cfg-popover" id="cfgPopover">
-        <div class="cfg-section-label">カラーテーマ</div>
-        <button class="cfg-item" onclick="applyTheme('male')">
-          <span class="cfg-dot" style="background:#223670;"></span>
-          男性向け（デフォルト）
-        </button>
-        <button class="cfg-item" onclick="applyTheme('female')">
-          <span class="cfg-dot" style="background:#d4547a;"></span>
-          女性向け（ピンク系）
-        </button>
-        <div class="cfg-divider"></div>
-        <div class="cfg-section-label">デモデータ</div>
-        <button class="cfg-item" onclick="loadDemoData()">
-          ✨ デモデータを読み込む
-        </button>
-        <button class="cfg-item danger" onclick="clearDemoData()">
-          🗑 デモデータをクリア
-        </button>
-      </div>
-    </div>
+    <!-- ボタンのみ header 内に置く。ポップオーバー本体は body 直下に移動 -->
+    <button class="hdr-btn" id="btnHow">📖 使い方</button>
+    <button class="hdr-btn" id="btnCfg">⚙️ 設定</button>
   </div>
 </header>
+
+<!-- ========================================
+     ポップオーバー本体（body直下・fixed配置）
+     header の stacking context の外に出すことで確実に表示される
+======================================== -->
+
+<!-- 使い方ポップオーバー -->
+<div class="popover how-popover" id="howPopover">
+  <h3>🎯 このアプリの目的</h3>
+  <p class="purpose">
+    中小企業の経営者が、専門知識なしで自分のホームページを作成・更新できるツールです。
+    AIが現状を分析し「次にやるべきこと」を具体的にアドバイスするので、
+    ホームページを育て続けることができます。
+  </p>
+  <h4>📋 使い方</h4>
+  <ol>
+    <li><strong>左パネルに入力</strong>：会社名・キャッチコピー・事業内容など必要事項を入力してください</li>
+    <li><strong>右側でリアルタイム確認</strong>：入力と同時にホームページの仕上がりが右側に表示されます</li>
+    <li><strong>カラーを選ぶ</strong>：メインカラーを変えるだけで全体の印象がすぐ変わります</li>
+    <li><strong>画像をアップロード</strong>：会社や商品の写真をドラッグ＆ドロップで追加できます</li>
+    <li><strong>スマホ表示を確認</strong>：「スマホ表示」ボタンでスマホでの見た目を確認できます</li>
+    <li><strong>AIにアドバイスをもらう</strong>：下部のボタンを押すと、AIが改善提案を自動生成します</li>
+    <li><strong>自動保存</strong>：入力内容はブラウザに自動保存され、次回開いても続きから始められます</li>
+  </ol>
+</div>
+
+<!-- 設定ポップオーバー -->
+<div class="popover cfg-popover" id="cfgPopover">
+  <div class="cfg-section-label">カラーテーマ</div>
+  <button class="cfg-item" onclick="applyTheme('male')">
+    <span class="cfg-dot" style="background:#223670;"></span>男性向け（デフォルト）
+  </button>
+  <button class="cfg-item" onclick="applyTheme('female')">
+    <span class="cfg-dot" style="background:#d4547a;"></span>女性向け（ピンク系）
+  </button>
+  <div class="cfg-divider"></div>
+  <div class="cfg-section-label">デモデータ</div>
+  <button class="cfg-item" onclick="loadDemoData()">✨ デモデータを読み込む</button>
+  <button class="cfg-item danger" onclick="clearDemoData()">🗑 デモデータをクリア</button>
+</div>
 
 <!-- ========================================
      メインエリア（左右2カラム）
@@ -1376,29 +1366,52 @@ colorHexInput.addEventListener("blur", () => {
 });
 
 // ========================================
-// ポップオーバー開閉
+// ポップオーバー開閉（fixed配置・ボタン位置基準）
 // ========================================
-function togglePopover(id, event) {
-  // バブリングを止めてdocumentのclose処理と競合させない
-  event.stopPropagation();
+function openPopover(popoverId, triggerBtn) {
+  const pop = document.getElementById(popoverId);
+  const rect = triggerBtn.getBoundingClientRect();
 
-  const target = document.getElementById(id);
-  const isOpen = target.classList.contains("open");
+  // 一度表示してサイズを取得してから位置を決める
+  pop.style.visibility = "hidden";
+  pop.classList.add("open");
 
-  // いったん全部閉じてから対象だけ開く
-  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
-  if (!isOpen) target.classList.add("open");
+  const popW = pop.offsetWidth;
+  let left = rect.right - popW;           // 右端を揃える
+  if (left < 8) left = 8;                 // 画面左にはみ出さない
+  const top = rect.bottom + 8;
+
+  pop.style.left = left + "px";
+  pop.style.top  = top  + "px";
+  pop.style.visibility = "";
 }
 
-// ポップオーバー内のクリックはバブリングを止める（閉じないようにする）
+function closeAllPopovers() {
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
+}
+
+// ヘッダーボタンのクリック
+document.getElementById("btnHow").addEventListener("click", function(e) {
+  e.stopPropagation();
+  const isOpen = document.getElementById("howPopover").classList.contains("open");
+  closeAllPopovers();
+  if (!isOpen) openPopover("howPopover", this);
+});
+
+document.getElementById("btnCfg").addEventListener("click", function(e) {
+  e.stopPropagation();
+  const isOpen = document.getElementById("cfgPopover").classList.contains("open");
+  closeAllPopovers();
+  if (!isOpen) openPopover("cfgPopover", this);
+});
+
+// ポップオーバー内クリックは閉じない
 document.querySelectorAll(".popover").forEach(p => {
   p.addEventListener("click", e => e.stopPropagation());
 });
 
-// ポップオーバー外クリックで閉じる
-document.addEventListener("click", () => {
-  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
-});
+// 外側クリックで閉じる
+document.addEventListener("click", closeAllPopovers);
 
 // ========================================
 // カラーテーマ切替
