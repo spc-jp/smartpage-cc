@@ -165,9 +165,27 @@
       background: var(--white);
     }
 
-    .color-row .color-label {
+    /* カラーコード直接入力欄 */
+    .color-hex-input {
+      width: 96px;
+      padding: 7px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: monospace;
       font-size: 13px;
-      color: var(--gray);
+      color: var(--text);
+      background: #fafbff;
+      transition: border-color 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .color-hex-input:focus {
+      outline: none;
+      border-color: var(--navy);
+      background: var(--white);
+    }
+    .color-hex-input.invalid {
+      border-color: #ef4444;
+      background: #fff5f5;
     }
 
     /* 画像アップロード */
@@ -795,7 +813,7 @@
 
     <!-- 使い方ボタン -->
     <div class="popover-wrap">
-      <button class="hdr-btn" onclick="togglePopover('howPopover')">
+      <button class="hdr-btn" onclick="togglePopover('howPopover', event)">
         📖 使い方
       </button>
       <div class="popover how-popover" id="howPopover">
@@ -820,7 +838,7 @@
 
     <!-- 設定ボタン -->
     <div class="popover-wrap">
-      <button class="hdr-btn" onclick="togglePopover('cfgPopover')">
+      <button class="hdr-btn" onclick="togglePopover('cfgPopover', event)">
         ⚙️ 設定
       </button>
       <div class="popover cfg-popover" id="cfgPopover">
@@ -884,7 +902,7 @@
       <label>🎨 メインカラー</label>
       <div class="color-row">
         <input type="color" id="mainColor" value="#223670" />
-        <span class="color-label" id="colorHex">#223670</span>
+        <input type="text" class="color-hex-input" id="colorHex" value="#223670" maxlength="7" placeholder="#000000" spellcheck="false" />
       </div>
     </div>
 
@@ -1053,7 +1071,7 @@ function updatePreview() {
   preview.heroSub.textContent = subText;
 
   // カラーピッカーのhex表示
-  document.getElementById("colorHex").textContent = color;
+  document.getElementById("colorHex").value = color;
 
   // --- ヒーローエリア ---
   // ライトグラデーション背景はCSSで設定済み。
@@ -1334,22 +1352,52 @@ Object.values(fields).forEach(el => {
   el.addEventListener("change", updatePreview);
 });
 
+// カラーコードテキスト入力 ↔ カラーピッカー 双方向同期
+const colorHexInput = document.getElementById("colorHex");
+colorHexInput.addEventListener("input", () => {
+  const val = colorHexInput.value.trim();
+  // #付き6桁16進数が完成したときだけピッカーと反映を更新
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    colorHexInput.classList.remove("invalid");
+    fields.mainColor.value = val;
+    updatePreview();
+  } else {
+    colorHexInput.classList.add("invalid");
+  }
+});
+
+// フォーカスを外したとき：不正値なら現在のカラーに戻す
+colorHexInput.addEventListener("blur", () => {
+  const val = colorHexInput.value.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(val)) {
+    colorHexInput.value = fields.mainColor.value;
+    colorHexInput.classList.remove("invalid");
+  }
+});
+
 // ========================================
 // ポップオーバー開閉
 // ========================================
-function togglePopover(id) {
+function togglePopover(id, event) {
+  // バブリングを止めてdocumentのclose処理と競合させない
+  event.stopPropagation();
+
   const target = document.getElementById(id);
   const isOpen = target.classList.contains("open");
+
   // いったん全部閉じてから対象だけ開く
   document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
   if (!isOpen) target.classList.add("open");
 }
 
+// ポップオーバー内のクリックはバブリングを止める（閉じないようにする）
+document.querySelectorAll(".popover").forEach(p => {
+  p.addEventListener("click", e => e.stopPropagation());
+});
+
 // ポップオーバー外クリックで閉じる
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".popover-wrap")) {
-    document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
-  }
+document.addEventListener("click", () => {
+  document.querySelectorAll(".popover").forEach(p => p.classList.remove("open"));
 });
 
 // ========================================
